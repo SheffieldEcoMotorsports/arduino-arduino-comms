@@ -1,32 +1,26 @@
 #include <SoftwareSerial.h>
-
-#define rxPin 10
-#define txPin 11
-SoftwareSerial mySerial =  SoftwareSerial(rxPin, txPin);
-
-int IntPin = 2;
-
-void setup()
-{
-  Serial.begin(2400);
-  Serial.println("Starting..");
-  mySerial.begin(2400);
-  pinMode(IntPin, OUTPUT);
-  digitalWrite(IntPin, LOW);
+const byte ledPin = 13;
+const byte interruptPin = 2;
+volatile byte state = LOW;
+unsigned long time;
+SoftwareSerial mySerial(10, 11);
+void setup() {
+  pinMode(ledPin, OUTPUT);
+  pinMode(interruptPin, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(interruptPin), blink, RISING);
 }
 
-void loop()
-{
-
-  digitalWrite(IntPin, HIGH);        // sets the digital pin 13 off
+void loop() {
   
-  while (mySerial.available())
- {
-   char c = mySerial.read();
-   Serial.print(c);
- }
+}
 
-  digitalWrite(IntPin, LOW);        // sets the digital pin 13 off
-  delay(5000);
-
+void blink() {
+  mySerial.begin(2400);
+  //state = !state;
+  time = millis();
+  String input_;//if (mySerial.available()) 
+  char ch;
+  mySerial.println(time);
+  //delay(2);  //slow looping to allow buffer to fill with next character
+  mySerial.end();
 }
