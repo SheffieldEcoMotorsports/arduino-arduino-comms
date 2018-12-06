@@ -169,13 +169,8 @@ void loop() {
   String Sway = String(W);
   //String endIndicate = "]";
   //smash them all together:
-  String serialSend = String("["+latitude+longitude+testBatteryVal+Roll+Pitch+Surge+
-  Sway+"]");
+  String serialSend = String("["+latitude+","+longitude+","+testBatteryVal+","+Roll+","+Pitch+
+  ","+Surge+","+Sway+"]");
   //send it (!!!!!!!!!)
   mainSerial.print(serialSend);
 }
-
-
-
-
-
