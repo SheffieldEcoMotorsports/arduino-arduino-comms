@@ -5,13 +5,17 @@
 //libs for Accelerometer:
 #include <Wire.h>
 
+TinyGPS gps;
+float lat,lon; // create variable for latitude and longitude
+
 //general
 const byte ledPin = 13;
 const byte interruptPin = 2;
 volatile byte state = LOW;
+String serialSend;
 
 //setting up the serial stuff
-SoftwareSerial mainSerial(0, 1);//main serial
+SoftwareSerial mySerial(0, 1);//main serial
 SoftwareSerial gpsSerial(3,4);//rx,tx for GPS module
 
 //for Accelerometer
@@ -162,15 +166,22 @@ void loop() {
   //String startIndicate = "[";
   String latitude = String(lat,6);
   String longitude = String(lon,6);
-  String Battery = String(testBatteryVal)
+  String Battery = String(testBatteryVal);
   String Roll = String(R);
   String Pitch = String(P);
   String Surge = String(S);
   String Sway = String(W);
   //String endIndicate = "]";
   //smash them all together:
-  String serialSend = String("["+latitude+","+longitude+","+testBatteryVal+","+Roll+","+Pitch+
+  serialSend = String("["+latitude+","+longitude+","+testBatteryVal+","+Roll+","+Pitch+
   ","+Surge+","+Sway+"]");
-  //send it (!!!!!!!!!)
-  mainSerial.print(serialSend);
+  //send it (!!!!!!!!!)  
+}
+
+void interruptFcn() {
+  mySerial.begin(2400);
+  //state = !state;
+  mySerial.print(serialSend);
+  //delay(2);  //slow looping to allow buffer to fill with next character
+  mySerial.end();
 }
