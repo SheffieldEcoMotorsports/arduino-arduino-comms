@@ -19,7 +19,6 @@ SoftwareSerial mySerial(8, 9);//main serial
 SoftwareSerial gpsSerial(3, 4); //rx,tx for GPS module
 
 //for Accelerometer
-void setupAccelero() {
 #define CAL_REP 2000 //number of readings to take for callibration
 #define A_K 4096  //scaling constant for accelerometer
 #define LOOP_PERIOD 250 //period of loop() in micro seconds
@@ -28,14 +27,13 @@ void setupAccelero() {
 #define G_PROP 0.9996 //proportion of gyro data in complementary filter
 #define A_PROP 0.0004 //proportion of acc data in comp. filter. NB: A_PROP + G_PROP = 1
 
-  long gx, gy, gz;  //raw gyro data
-  double ax, ay, az;  //raw acc data
-  long gx_cal, gy_cal, gz_cal, ax_cal, ay_cal, az_cal;  //calibration variables
-  float R, P; //roll/pitch angles calculated from gyro integration and then corrected by accelerometer
-  float aR, aP; //roll/pitch angles calcualted from accelerometer
-  unsigned long old_t = 0;  //used to delay each loop to 4ms
-  float S, W; //surge/sWay after correction for angle/gravity
-}
+long gx, gy, gz;  //raw gyro data
+double ax, ay, az,velocity=0,velocityx=0,velocityy=0,velocityz=0,oldx,oldy,oldz;  //raw acc data
+long gx_cal, gy_cal, gz_cal, ax_cal, ay_cal, az_cal;  //calibration variables
+float R, P, Y; //roll/pitch angles calculated from gyro integration and then corrected by accelerometer
+float aR, aP; //roll/pitch angles calcualted from accelerometer
+unsigned long old_t = 0;  //used to delay each loop to 4ms
+float S, W; //surge/sWay after correction for angle/gravity
 
 //caliberate the accelerodude
 void calibrate() { //get gyro offsets, and an average acc value to set initial roll/pitch values
@@ -105,8 +103,6 @@ void calcAngle() {
 
 void setup() {
   //general
-  Serial.begin(9600);
-  Serial.println("PWM el3b yalaa3");
   pinMode(ledPin, OUTPUT);
   pinMode(interruptPin, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(interruptPin), interruptFcn,
@@ -114,11 +110,9 @@ void setup() {
 
   //for GPS
   gpsSerial.begin(9600); // connect gps sensor
-  Serial.println("test0");
   //for Accelerometer
   float aTotal;
   Wire.begin(); //start I2C as master
-  Serial.println("test5");
   //configure gyro
   Wire.beginTransmission(0x68);  //start coms with MPU
   Wire.write(0x6B); //address of register to be written next...
@@ -130,24 +124,19 @@ void setup() {
   Wire.write(B00001000); //500deg/s
   Wire.endTransmission();
   //configure accelerometer (+/- 4g)
-  setupAccelero();
   Wire.beginTransmission(0x68);
   Wire.write(0x1C);
   Wire.write(B00010000);
   Wire.endTransmission();
-  Serial.println("test6");
   //calibrate();  //get gyro offset values
 
   aTotal = sqrt((ax * ax) + (ay * ay) + (az * az)); //Calculate the total accelerometer vector then set initial pitch/roll values based on acc data
   R = asin((float)az / aTotal) * 57.296; //////////// CODE THAT FOLLOWS MAY NEED CHANGING IF ORIENTATION IS CHANGED OR WRONG
   P = asin((float)ay / aTotal) * -57.296;
-  Serial.println("test555555555555");
 }
 
 void loop() {
-  // needs a while(?)
-  //GPS:
-  Serial.println("test1");
+  double acc_x,acc_y,acc_z,accTotal;
   if (gps.encode(gpsSerial.read())) { // encode gps data
     gps.f_get_position(&lat, &lon); // get latitude and longitude
   }
@@ -165,13 +154,26 @@ void loop() {
 
     old_t = micros();
   }
-  delay(1000);
+  acc_x=ax/408;
+  acc_y=ay/408;
+  acc_z=az/408;
+
+  acc_x=acc_x - oldx;
+  acc_y=acc_y - oldy;
+  acc_z=acc_z - oldz;
+  accTotal = sqrt((acc_x*acc_x)+(acc_y*acc_y)+(acc_z*acc_z));  //Calculate the total accelerometer vector then set initial pitch/roll values base
+  velocityx = velocityx + acc_x;
+  velocityy = velocityy + acc_y;
+  velocity = sqrt(velocityx*velocityx + velocityy*velocityy + velocityz*velocityz);
+ // float angle = arctan(velocityy/velocityx);
+  //Serial.println(velocity);// Serial.println(velocity);
+  serialSend= "[" + String(lat)+ "," + String(lon)+ "," + String(velocity)+ "," +String(acc_x)+ "," +String(acc_y)+ "," +String(acc_z)+ "," +String(R)+ "," +String(P) + String(80)+ "]";//add yaw
 }
 
 void interruptFcn() {
-  mySerial.begin(9600);
+  Serial.begin(9600);
   //state = !state;
-  mySerial.print(serialSend);
+  Serial.print(serialSend);
   //delay(2);  //slow looping to allow buffer to fill with next character
-  mySerial.end();
+  Serial.end();
 }
