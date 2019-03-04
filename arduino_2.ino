@@ -8,7 +8,7 @@
 
 const byte interruptPin = 2;
 unsigned long time;
-String output,out;
+String output,out, LastBatteryValue = "100";
 //int current = 2;
 int val = 0;
 
@@ -53,23 +53,36 @@ void loop() {
   //thermistor=thermistor();
   thermocouple = Thermocouplefcn();
   bluetooth = Bluetoothfcn();
-  out = "[" + current + "," + thermocouple + "," + bluetooth + "]";
+  if(bluetooth != "No value")
+  {
+    LastBatteryValue = bluetooth;
+  }
+  out = "[" + current + "," + thermocouple + "," + LastBatteryValue + "]";
 }
 
 String Bluetoothfcn() {
+  String Str = "";
   if (BTserial.available() > 0) { // triggered if something new is printed in bluetooth COM port
-   String Str = "";
+   char incomingControl = "";
     while (BTserial.available() > 0) {
       // read the newest byte in the serial buffer:
-     char incomingControl = BTserial.read();
+     incomingControl = BTserial.read();
+     if(incomingControl != '\n')
+     {
       Str = Str + incomingControl;
+     }
+     else
+     {
+      return(Str);
+     }       
     }
-    //If serial reads 1, car moves backwards
-    // *** PLEASE NOTE all of the motion commands are reversed due to the configuration of the remote and the set up of motors***
-    //if (incomingControl == '1')
-    
+  }   
+  else
+  {
+  return("No value");
   }
 }
+
 
 
 String Currentfcn() {
@@ -95,7 +108,7 @@ String Thermocouplefcn() {
 void acquisition() {
   Serial.begin(9600);
   //state = !state;
-  Serial.print(out);
+  Serial.println(out);
   //delay(2);  //slow looping to allow buffer to fill with next character
   Serial.end();
 }
