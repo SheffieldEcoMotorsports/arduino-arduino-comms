@@ -13,8 +13,8 @@
 
 
 //Arduino 2 uses normal serial & Arduino 3 uses software serial
-#define rxPin2 14 //Arduino 3 rx
-#define txPin2 15 //Arduino 3 tx
+#define rxPin2 A0 //Arduino 3 rx
+#define txPin2 A1 //Arduino 3 tx
 #define ssPin 10 //SD Card 
 #define IntPin3 3//Interrupt for Arduino 3
 #define IntPin2 2//Interrupt for Arduino 2
@@ -29,6 +29,17 @@ TM1637Display speed_display(DISPLAY_CLK, SPEED_DISPLAY_DIO);  //set up the speed
 TM1637Display batt_display(DISPLAY_CLK, BATT_DISPLAY_DIO);  //set up the battery display
 TM1637Display lap_display(DISPLAY_CLK, LAP_DISPLAY_DIO);  //set up the lap display
 TM1637Display time_display(DISPLAY_CLK, TIME_DISPLAY_DIO);  //set up the stopwatch display
+
+/* Useful Constants */
+#define SECS_PER_MIN  (60UL)
+#define SECS_PER_HOUR (3600UL)
+#define SECS_PER_DAY  (SECS_PER_HOUR * 24L)
+
+/* Useful Macros for getting elapsed time */
+#define numberOfSeconds(_time_) (_time_ % SECS_PER_MIN)  
+#define numberOfMinutes(_time_) ((_time_ / SECS_PER_MIN) % SECS_PER_MIN) 
+#define numberOfHours(_time_) (( _time_% SECS_PER_DAY) / SECS_PER_HOUR)
+#define elapsedDays(_time_) ( _time_ / SECS_PER_DAY) 
 
 void setup()
 {
@@ -65,7 +76,6 @@ void loop()
   /// Arduino 3 //// 
   Str3 = "";
   digitalWrite(IntPin3, HIGH);        // sets the digital pin 3 off
-  myFile = SD.open("TEST.txt", FILE_WRITE);
   
   while (mySerial.available())
  {
@@ -85,15 +95,15 @@ void loop()
   int Str3CommaIndex8 = Str3.indexOf(",",Str3CommaIndex7+1);//Pos2 - Yaw
   //Pos3 - Roll
 
-  int Lat = (Str3.substring(1,Str3CommaIndex1)).toInt();
-  int Long = (Str3.substring(Str3CommaIndex1+1,Str3CommaIndex2)).toInt();
-  int Speed = (Str3.substring(Str3CommaIndex2+1,Str3CommaIndex3)).toInt();
-  int AccX = (Str3.substring(Str3CommaIndex3+1,Str3CommaIndex4)).toInt();
-  int AccY = (Str3.substring(Str3CommaIndex4+1,Str3CommaIndex5)).toInt();
-  int AccZ = (Str3.substring(Str3CommaIndex5+1,Str3CommaIndex6)).toInt();
-  int Pitch = (Str3.substring(Str3CommaIndex6+1,Str3CommaIndex7)).toInt();
-  int Yaw = (Str3.substring(Str3CommaIndex7+1,Str3CommaIndex8)).toInt();
-  int Roll = (Str3.substring(Str3CommaIndex8+1,Str3.length()-1)).toInt();
+  float Lat = (Str3.substring(1,Str3CommaIndex1)).toFloat();
+  float Long = (Str3.substring(Str3CommaIndex1+1,Str3CommaIndex2)).toFloat();
+  float Speed = (Str3.substring(Str3CommaIndex2+1,Str3CommaIndex3)).toFloat();
+  float AccX = (Str3.substring(Str3CommaIndex3+1,Str3CommaIndex4)).toFloat();
+  float AccY = (Str3.substring(Str3CommaIndex4+1,Str3CommaIndex5)).toFloat();
+  float AccZ = (Str3.substring(Str3CommaIndex5+1,Str3CommaIndex6)).toFloat();
+  float Pitch = (Str3.substring(Str3CommaIndex6+1,Str3CommaIndex7)).toFloat();
+  float Yaw = (Str3.substring(Str3CommaIndex7+1,Str3CommaIndex8)).toFloat();
+  float Roll = (Str3.substring(Str3CommaIndex8+1,Str3.length()-1)).toFloat();
   
   speed_display.showNumberDec(Speed, false);
   
@@ -114,15 +124,19 @@ void loop()
   int Str2CommaIndex2 = Str2.indexOf(",",Str2CommaIndex1+1);//Temp
   //BatLvl
 
-  int Current = (Str2.substring(1,Str2CommaIndex1)).toInt();
-  int Temp = (Str2.substring(Str2CommaIndex1+1,Str2CommaIndex2)).toInt();
+  float Current = (Str2.substring(1,Str2CommaIndex1)).toFloat();
+  float Temp = (Str2.substring(Str2CommaIndex1+1,Str2CommaIndex2)).toFloat();
   int BatLvl = (Str2.substring(Str2CommaIndex2+1,Str2.length()-1)).toInt();
   batt_display.showNumberDec(BatLvl, false);
 
 
-  int Time = millis();
-  //SD Card Logging
-  //myFile.println("Time,BatLvl,Speed,Lat,Log,AccX,AccY,AccZ,Pitch,Yaw,Roll,Current,Temp");
+  long val = millis()/1000;
+  int hours = numberOfHours(val);
+  int minutes = numberOfMinutes(val);
+  int seconds = numberOfSeconds(val);
+  String Time = String(hours) + "h " + String(minutes) + "m " + String(seconds) + "s ";
+  
+  myFile = SD.open("TEST.txt", FILE_WRITE);
   myFile.println(String(Time)+","+String(BatLvl)+","+String(Speed)+","+String(Lat)+","+String(Long)+","+String(AccX)+","+String(AccY)+","+String(AccZ)+","+String(Pitch)+","+String(Yaw)+","+String(Roll)+","+String(Current)+","+String(Temp));
 
   myFile.close();
