@@ -11,19 +11,25 @@
 #define LAP_DISPLAY_DIO 6 //lap number display
 #define TIME_DISPLAY_DIO 7 //time display
 
+#define Timer_Button 2 //Push Button for timer
+#define Lap_Button 3 //Push Button for lap count
+#define NoOfLaps 7;
 
 //Arduino 2 uses normal serial & Arduino 3 uses software serial
 #define rxPin2 A0 //Arduino 3 rx
 #define txPin2 A1 //Arduino 3 tx
 #define ssPin 10 //SD Card 
-#define IntPin3 3//Interrupt for Arduino 3
-#define IntPin2 2//Interrupt for Arduino 2
+#define IntPin3 A4//Interrupt for Arduino 3
+#define IntPin2 A5//Interrupt for Arduino 2
 SoftwareSerial mySerial =  SoftwareSerial(rxPin2, txPin2); //Arduino 3 comms
 
 bool sdInitSuccess = false; //card init status
 File myFile;
 String Str2 = "";
 String Str3 = "";
+long Start_Time;
+bool Timer = false;
+int Lap_Counter;
 
 TM1637Display speed_display(DISPLAY_CLK, SPEED_DISPLAY_DIO);  //set up the speed display
 TM1637Display batt_display(DISPLAY_CLK, BATT_DISPLAY_DIO);  //set up the battery display
@@ -43,8 +49,18 @@ TM1637Display time_display(DISPLAY_CLK, TIME_DISPLAY_DIO);  //set up the stopwat
 
 void setup()
 {
-  batt_display.setBrightness(0x0f);
+  Lap_Counter = NoOfLaps;
+  pinMode(Timer_Button,INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(Timer_Button), Start_Timer, RISING);
 
+  pinMode(Lap_Button,INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(Lap_Button), Lap_Count, RISING);
+  
+  batt_display.setBrightness(0x0f);
+  speed_display.setBrightness(0x0f);
+  time_display.setBrightness(0x0f);
+  lap_display.setBrightness(0x0f);
+  
   // To arduino 2
   Serial.begin(9600); 
   pinMode(IntPin2, OUTPUT);
@@ -104,7 +120,8 @@ void loop()
   float Pitch = (Str3.substring(Str3CommaIndex6+1,Str3CommaIndex7)).toFloat();
   float Yaw = (Str3.substring(Str3CommaIndex7+1,Str3CommaIndex8)).toFloat();
   float Roll = (Str3.substring(Str3CommaIndex8+1,Str3.length()-1)).toFloat();
-  
+
+  Speed = abs(int(Speed));
   speed_display.showNumberDec(Speed, false);
   
 
@@ -129,15 +146,36 @@ void loop()
   int BatLvl = (Str2.substring(Str2CommaIndex2+1,Str2.length()-1)).toInt();
   batt_display.showNumberDec(BatLvl, false);
 
+  if(Timer == true)
+  {
+    long Elasped_Time = 2400-((millis()-Start_Time)/1000);
+    int minutes = numberOfMinutes(Elasped_Time);
+    int seconds = numberOfSeconds(Elasped_Time);
+    time_display.showNumberDec((minutes*100)+seconds, false);
+  }
 
   long val = millis()/1000;
   int hours = numberOfHours(val);
   int minutes = numberOfMinutes(val);
   int seconds = numberOfSeconds(val);
   String Time = String(hours) + "h " + String(minutes) + "m " + String(seconds) + "s ";
-  
+
   myFile = SD.open("TEST.txt", FILE_WRITE);
   myFile.println(String(Time)+","+String(BatLvl)+","+String(Speed)+","+String(Lat)+","+String(Long)+","+String(AccX)+","+String(AccY)+","+String(AccZ)+","+String(Pitch)+","+String(Yaw)+","+String(Roll)+","+String(Current)+","+String(Temp));
 
   myFile.close();
+}
+
+void Start_Timer() {
+  Start_Time = millis();
+  Timer = true;
+}
+
+void Lap_Count() {
+  Lap_Counter = Lap_Counter - 1;
+  if(Lap_Counter < 0)
+  {
+    Lap_Counter = NoOfLaps;
+  }
+  lap_display.showNumberDec(Lap_Counter, false);
 }
